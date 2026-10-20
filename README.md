@@ -29,7 +29,7 @@ designer-assets/      旧版简化字段/事件编辑界面
 
 Monaco 工作线程源码由插件读取并校验，随页面传入后直接创建 Blob worker；不使用 Webview 不支持的 `importScripts()` 加载方式。
 
-快照共 **109 个文件，14,842,213 字节**。初始网页的 107 个静态依赖之外，实际界面测试补齐了 `editor.worker.js` 和 `ts.worker.js`。
+快照共 **109 个文件，14,842,219 字节**。初始网页的 107 个静态依赖之外，实际界面测试补齐了 `editor.worker.js` 和 `ts.worker.js`。入口主程序中的内网域名与 IP 已脱敏，SHA-256 同步更新，校验逻辑不变。
 
 ## 设置
 

@@ -6,7 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import subprocess, hashlib, json, re, os
 
-BASE = 'http://gme.gusen.steel56.com.cn'
+# 脱敏：真实平台地址只从环境变量读取，不在源码中硬编码内网域名。
+BASE = os.environ.get('GUSHEN_PLATFORM_BASE', 'http://gushen.example.com').rstrip('/')
 ENTRY = BASE + '/guthon/index.html'
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / 'platform-assets'
