@@ -1,7 +1,7 @@
 {
   "name": "gushen-page-editor",
   "displayName": "谷神页面离线编辑器",
-  "description": "离线编辑谷神 PG JSON 页面中的字段和前端事件，支持独立替换设计器静态资源。",
+  "description": "离线编辑谷神 PG JSON 页面中的字段、前端事件与服务事件，支持独立替换设计器静态资源。",
   "version": "0.2.0",
   "publisher": "local-gushen",
   "license": "UNLICENSED",
@@ -12,10 +12,29 @@
     "Other"
   ],
   "main": "./src/extension.js",
-  "activationEvents": [
-    "onCustomEditor:gushen.pageEditor"
-  ],
   "contributes": {
+    "commands": [
+      {
+        "command": "gushen.openPageEditor",
+        "title": "通过谷神页面编辑器打开"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "gushen.openPageEditor",
+          "when": "resourceFilename =~ /^PG-.*\\.json$/ && resourceScheme != untitled",
+          "group": "navigation@10"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gushen.openPageEditor",
+          "when": "resourceFilename =~ /^PG-.*\\.json$/ && !explorerResourceIsFolder",
+          "group": "navigation@10"
+        }
+      ]
+    },
     "customEditors": [
       {
         "viewType": "gushen.pageEditor",

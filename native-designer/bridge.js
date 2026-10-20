@@ -48,6 +48,11 @@
    if(!vm){latest=message;return;}
    const id=++loadId;loading=true;conflict=false;documentState=message;latest=message;baseline=null;
    vm.isLoadOk=false;await vm.$nextTick();
+   vm.$store.commit('putDevSystemId',message.systemId||'offline');
+   // The standalone route skips the online system selector. Its controls still
+   // require this state to open local datasource dialogs; this is only an
+   // offline marker, never a database ID (all backend calls remain blocked).
+   vm.$store.commit('putDevCurDataSourceId','offline');
    vm.initPage(JSON.stringify(message.data));
    for(let i=0;i<40;i++) {
      await new Promise(resolve=>setTimeout(resolve,50));
@@ -57,7 +62,7 @@
        work.isCheckOut=true;
        baseline=clone(context());loading=false;
        post({type:'nativeBaseline',version:message.version,baseline});
-       status('原版设计器已就绪 · 字段与前端事件修改会同步到当前文档');
+       status('原版设计器已就绪 · 字段与事件修改会同步到当前文档');
        const draft=vscode.getState();
        if(draft?.candidate && draft.pageId===message.data.pageId){
          if(draft.version===message.version){try{await restoreDraft(draft.candidate);}catch(e){status(e.message);}}
@@ -84,13 +89,20 @@
    pending={candidate:clone(candidate),version:documentState.version,requestId:String(++request)};
    vscode.setState({pageId:documentState.data.pageId,version:documentState.version,candidate:pending.candidate});
    post({type:'nativeEdit',candidate:pending.candidate,version:pending.version,requestId:pending.requestId});
-   status('正在同步字段与前端事件…');
+   status('正在同步字段与事件…');
  }
- window.__GUSHEN_INSTALL__=({Vue,api,config,script,assetBase})=>{
+ window.__GUSHEN_INSTALL__=({Vue,api,config,script,validators=[],assetBase})=>{
    configure(api);
+   // Dialog confirmation must not depend on the platform's online compiler.
+   // Event scripts are saved locally; no remote compilation or execution occurs.
+   for(const validator of validators)validator.checkGdpaasScript=(scripts,done)=>{if(typeof done==='function')queueMicrotask(()=>done());};
+   let workerSources;
    window.MonacoEnvironment={getWorker(moduleId,label){
      const filename=['javascript','typescript'].includes(label)?'ts.worker.js':'editor.worker.js';
-     const uri=URL.createObjectURL(new Blob(['importScripts('+JSON.stringify(assetBase+filename)+');'],{type:'text/javascript'}));
+     workerSources ||= JSON.parse(document.getElementById('offline-worker-sources').textContent);
+     const source=workerSources[filename];
+     if(typeof source!=='string')throw new Error('缺少本地工作线程：'+filename);
+     const uri=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
      const worker=new Worker(uri);
      setTimeout(()=>URL.revokeObjectURL(uri),10000);
      return worker;
@@ -99,13 +111,17 @@
    script.initPageCodes=(page,type,cb)=>cb?.([]);
    script.initListCodes=(page,type,cb)=>cb?.([]);
    config.CLOUD_PATH='';config.WEB_SOCKET_PATH='';
-   Vue.http.interceptors.unshift((request,next)=>{unavailable(request.url);next(request.respondWith(JSON.stringify({code:1,message:'离线模式不执行网络请求'}),{status:200,headers:{'Content-Type':'application/json'}}));});
+   Vue.http.interceptors.unshift((request,next)=>{unavailable(request.url);next(request.respondWith(JSON.stringify({code:1,message:'此操作不在本地编辑范围内'}),{status:200,headers:{'Content-Type':'application/json'}}));});
    Vue.mixin({beforeCreate(){
+     // Bind the designer toolbar (including script views) directly to JSON save.
+     if(this.$options.props?.isIframe && this.$options.methods?.initPage && this.$options.methods?.save){
+       this.$options.methods={...this.$options.methods,save(){sync(true);}};
+     }
      if(['iframe-develop-root','dev-root'].includes(this.$options.name)){
        this.$options.methods={...this.$options.methods,
          postMessage(message){if(message.type==='ready'){vm=this;if(latest)void load(latest);else post({type:'ready'});}},
          onIframeSave(){sync(true);},
-         resize(){this.workAreaHeight=document.documentElement.clientHeight-44+32;this.workAreaWidth=document.documentElement.clientWidth-500;}
+         resize(){this.workAreaHeight=document.documentElement.clientHeight-24+32;this.workAreaWidth=document.documentElement.clientWidth-500;}
        };
      }
      // The application's custom stylesheet query is online-only.
@@ -134,8 +150,6 @@
      if(wantSave)sync(true);
    }else if(message.type==='nativeSaveError'){saving=false;wantSave=false;status(message.error);}
  });
- document.getElementById('offline-save').addEventListener('click',()=>sync(true));
- document.getElementById('offline-reload').addEventListener('click',()=>{if(pending){status('请等待当前修改完成。');return;}vscode.setState(null);if(latest)void load(latest);});
  window.addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='s'){event.preventDefault();sync(true);}},true);
  // Dialog init mutates missing defaults on the platform's live field objects.
  // Capture those defaults before typing; opening a dialog must not dirty JSON.

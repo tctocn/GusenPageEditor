@@ -1,6 +1,5 @@
 html,body{height:100%;margin:0;overflow:hidden;background:white;color:#303133}
-#offline-bar{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;background:#eef4fa;border-bottom:1px solid #c7d4e1;box-sizing:border-box;font:12px sans-serif;position:relative;z-index:3000}
-#offline-bar strong{white-space:nowrap}#offline-bar button{border:1px solid #a4b8ce;border-radius:3px;background:white;color:#25496f;padding:6px;cursor:pointer;white-space:nowrap}
-#offline-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#app{height:calc(100% - 44px);overflow:auto}.app{height:100%}
-/* Offline v0.2 edits fields and client events only. */
-#tab-service-script,#tab-serviceEvents,.tool-menu button[title*="添加列"],.tool-menu button[title*="添加行"],.tool-menu button[title*="剪切"],.tool-menu button[title*="粘贴"],.tool-menu button[title*="复制"],.tool-menu button[title*="删除"],.tool-menu button[title*="移动"],.tool-menu .el-checkbox{display:none!important}
+#offline-bar{height:24px;display:flex;align-items:center;padding:0 12px;background:#eef4fa;border-top:1px solid #c7d4e1;box-sizing:border-box;font:12px sans-serif;position:fixed;bottom:0;left:0;right:0}
+#offline-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#app{height:calc(100% - 24px);overflow:auto}.app{height:100%}
+/* Service-event tabs support local editing; layout operations remain hidden. */
+#tab-service-script,.tool-menu button[title*="添加列"],.tool-menu button[title*="添加行"],.tool-menu button[title*="剪切"],.tool-menu button[title*="粘贴"],.tool-menu button[title*="复制"],.tool-menu button[title*="删除"],.tool-menu button[title*="移动"],.tool-menu .el-checkbox{display:none!important}

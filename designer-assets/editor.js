@@ -10,9 +10,9 @@
     if (!value || typeof value !== 'object') return;
     if (!Array.isArray(value)) owner = value.label || value.name || owner;
     for (const [key, child] of Object.entries(value)) {
-      if (['datasource', 'serviceEvents', 'ctrls'].includes(key)) continue;
+      if (['datasource', 'ctrls'].includes(key)) continue;
       const next = [...path, Array.isArray(value) ? Number(key) : key];
-      const nextMode = key === 'fields' ? 'field' : key === 'pageEvents' ? 'event' : mode;
+      const nextMode = key === 'fields' ? 'field' : ['pageEvents','serviceEvents'].includes(key) ? 'event' : mode;
       if (child !== null && typeof child !== 'object' && nextMode &&
           !['id','guid','fieldId'].includes(key) && (nextMode !== 'event' || typeof child === 'string')) {
         entries.push({path: next, value: child, title: owner + ' · ' + key, mode: nextMode});
@@ -39,7 +39,7 @@
     selected = entry;
     $('title').textContent = entry.title;
     $('location').textContent = '/' + entry.path.join('/');
-    $('value-label').textContent = entry.mode === 'event' ? '前端事件脚本（仅编辑）' : '属性值 · ' + typeof entry.value;
+    $('value-label').textContent = entry.mode === 'event' ? (entry.path.includes('serviceEvents') ? '服务事件脚本（仅编辑）' : '前端事件脚本（仅编辑）') : '属性值 · ' + typeof entry.value;
     $('value').disabled = false;
     $('value').value = typeof entry.value === 'string' ? entry.value : JSON.stringify(entry.value);
     $('apply').disabled = true;

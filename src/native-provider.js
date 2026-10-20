@@ -23,6 +23,7 @@ async function resolveNativeEditor(context,document,panel){
      try{
        if(message.version!==document.version)throw new Error('文档已变化，请同步后再次保存。');
        const saved=await document.save();await post({type:'nativeSaved',saved,dirty:document.isDirty});
+       if(saved&&!document.isDirty)void vscode.window.showInformationMessage('JSON 保存成功。');
      }catch(error){await post({type:'nativeSaveError',error:error.message});}
      finally{saving=false;}
      return;

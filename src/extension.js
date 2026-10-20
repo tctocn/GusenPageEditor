@@ -6,6 +6,18 @@ const { inspect, createEdit } = require('./document');
 const { loadAssets, renderHtml } = require('./assets');
 
 function activate(context) {
+  context.subscriptions.push(vscode.commands.registerCommand('gushen.openPageEditor', async resource => {
+    const uri = resource || vscode.window.activeTextEditor?.document.uri;
+    if (!uri || !/^PG-.*\.json$/.test(path.basename(uri.path || uri.fsPath || ''))) {
+      await vscode.window.showErrorMessage('请选择 PG-*.json 页面文件。');
+      return;
+    }
+    try {
+      await vscode.commands.executeCommand('vscode.openWith', uri, 'gushen.pageEditor', { preview: false });
+    } catch (error) {
+      await vscode.window.showErrorMessage('无法打开谷神页面编辑器：' + error.message);
+    }
+  }));
   const provider = {
     async resolveCustomTextEditor(document, panel) {
       if (!vscode.workspace.isTrusted) throw new Error('请先信任此工作区，再使用谷神编辑器。');

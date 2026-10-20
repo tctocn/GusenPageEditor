@@ -26,7 +26,13 @@ test('字段编辑发送原路径和版本，不向插件发出整页覆盖',()=
   assert.equal(message.type,'edit');assert.equal(message.version,5);assert.equal(message.value,'客户名称');
   assert.deepEqual(Array.from(message.path),['views','rows',0,'component','fields',0,'label']);
   assert.equal(message.data,undefined);
-  assert.equal(h.get('tree').children.some(x=>x.textContent.includes('secret')),false);
+});
+test('基础编辑器展示服务事件并发送准确的脚本路径',()=>{
+ const h=ui();h.send({type:'document',data,version:3});
+ const item=h.get('tree').children.find(x=>x.title.endsWith('/serviceEvents/secret'));assert.ok(item);item.handlers.click();
+ assert.match(h.get('value-label').textContent,/服务/);
+ h.get('value').value='新服务脚本';h.get('value').handlers.input();h.get('apply').handlers.click();
+ assert.deepEqual(Array.from(h.sent.at(-1).path),['views','rows',0,'component','params','serviceEvents','secret']);assert.equal(h.sent.at(-1).value,'新服务脚本');
 });
 test('外部文档更新不覆盖尚未应用的输入，放弃后取最新版本',()=>{
   const h=ui();h.send({type:'document',data,version:1});

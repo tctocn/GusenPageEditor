@@ -9,7 +9,8 @@ function instrumentBundle(raw,base){
  const startup=new RegExp('var [\\w$]+=new '+vue.replace(/\$/g,'\\$')+'\\.a\\(').exec(raw.slice(prototype.index));
  if(!startup)throw new Error('平台资源启动接口已变化，需要更新离线适配器。');
  const offset=prototype.index+startup.index;
- const hook=`window.__GUSHEN_INSTALL__({Vue:${vue}.a,api:${api},config:${config},script:${script},assetBase:${JSON.stringify(base)}});`;
+ const validators=[...raw.matchAll(/([\w$]+)=\{checkGdpaasScript:function\(/g)].map(match=>match[1]);
+ const hook=`window.__GUSHEN_INSTALL__({Vue:${vue}.a,api:${api},config:${config},script:${script},validators:[${validators.join(',')}],assetBase:${JSON.stringify(base)}});`;
  return (raw.slice(0,offset)+hook+raw.slice(offset)).replace(publicPath,(_,name)=>name+'.p='+JSON.stringify(base)).replace(/<\/script/gi,'<\\/script');
 }
 async function buildNativeHtml(extensionPath,resourceUri,nonce,cspSource,configuredRoot) {
@@ -19,6 +20,15 @@ async function buildNativeHtml(extensionPath,resourceUri,nonce,cspSource,configu
  if(!record)throw new Error('资源包没有唯一主程序入口。');
  const raw=await fs.readFile(path.join(root,record.path),'utf8');
  if(crypto.createHash('sha256').update(raw).digest('hex')!==record.sha256)throw new Error('原版主程序校验失败，请重新下载资源。');
+ const workers=await Promise.all(['editor.worker.js','ts.worker.js'].map(async name=>{
+   const relative='guthon/'+name,entry=snapshot.files.find(file=>file.path===relative);
+   if(!entry)throw new Error('平台资源缺少工作线程：'+name);
+   const source=await fs.readFile(path.join(root,relative));
+   if(crypto.createHash('sha256').update(source).digest('hex')!==entry.sha256)throw new Error('工作线程校验失败：'+name);
+   return [name,source.toString('utf8')];
+ }));
+ // Inert JSON carries verified local sources; workers need no fetch/importScripts.
+ const workerData=JSON.stringify(Object.fromEntries(workers)).replace(/</g,'\\u003c');
  const base=resourceUri(path.join(root,'guthon'))+'/';
  const script=instrumentBundle(raw,base);
  const original=await fs.readFile(path.join(root,'guthon/index.html'),'utf8');
@@ -30,7 +40,8 @@ async function buildNativeHtml(extensionPath,resourceUri,nonce,cspSource,configu
  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}' ${escape(cspSource)}; style-src ${escape(cspSource)} 'unsafe-inline'; font-src ${escape(cspSource)} data:; img-src ${escape(cspSource)} data:; connect-src 'none'; worker-src ${escape(cspSource)} blob:; frame-src 'none';">
  ${styles.map(src=>`<link rel="stylesheet" href="${escape(resource(src))}">`).join('')}
  <link rel="stylesheet" href="${escape(resourceUri(path.join(extensionPath,'native-designer/bridge.css')))}">
- </head><body><div id="offline-bar"><strong>谷神 · 离线设计器</strong><button id="offline-save">保存 JSON</button><button id="offline-reload">放弃设计器修改并重载</button><span id="offline-status" role="status">正在启动原版设计器…</span></div><div id="app"></div>
+ </head><body><div id="offline-bar"><span id="offline-status" role="status">正在启动原版设计器…</span></div><div id="app"></div>
+ <script nonce="${nonce}" type="application/json" id="offline-worker-sources">${workerData}</script>
  <script nonce="${nonce}" src="${escape(resourceUri(path.join(extensionPath,'native-designer/bridge.js')))}"></script>
  ${sources.map(src=>`<script nonce="${nonce}" src="${escape(resource(src))}"></script>`).join('')}
  <script nonce="${nonce}">${script}</script></body></html>`;

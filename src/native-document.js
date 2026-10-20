@@ -1,18 +1,14 @@
 'use strict';
-const { inspect, createEdit } = require('./document');
+const { inspect, createEdit, stringifyPgValue, isEditablePath } = require('./document');
 const own = (object, key) => object !== null && typeof object === 'object' && Object.hasOwn(object, key);
-const scalar = value => value === null || ['string','boolean','number'].includes(typeof value);
-function permitted(path) {
-  return (['views','pageSetup'].includes(path[0]) || (path[0] === 'modalSaveBnt' && path[1] === 'pageEvents')) &&
-    (path.includes('fields') || path.includes('pageEvents')) &&
-    !path.some(key => ['serviceEvents','datasource','pageId','guid','id','fieldId','__proto__','prototype','constructor'].includes(key));
-}
+const scalar = value => value === null || ['string','boolean'].includes(typeof value) || (typeof value === 'number' && Number.isFinite(value));
+const eventPath = path => path.some(key => ['pageEvents','serviceEvents'].includes(key));
 function createNativeEdits(text, baseline, candidate) {
   const {data,spans} = inspect(text);
   if (baseline?.pageId !== data.pageId || candidate?.pageId !== data.pageId) throw new Error('设计器页面身份不匹配。');
   const updates = [], additions = new Map();
   function set(path, value) {
-    if (!permitted(path) || !scalar(value) || (path.includes('pageEvents') && typeof value !== 'string')) {
+    if (!isEditablePath(path) || !scalar(value) || (eventPath(path) && typeof value !== 'string')) {
       throw new Error('当前版本不支持此修改：/' + path.join('/'));
     }
     let parent=data, index=0;
@@ -44,7 +40,7 @@ function createNativeEdits(text, baseline, candidate) {
       }
       return;
     }
-    if (after===undefined && path.includes('pageEvents') && typeof before==='string') {set(path,'');return;}
+    if (after===undefined && eventPath(path) && typeof before==='string') {set(path,'');return;}
     if (after===undefined) throw new Error('不支持删除属性：/'+path.join('/'));
     set(path,after);
   }
@@ -52,7 +48,7 @@ function createNativeEdits(text, baseline, candidate) {
   for(const addition of additions.values()) {
     const span=spans.get(JSON.stringify(addition.path));
     if (!span) throw new Error('无法定位新增属性。');
-    const content=JSON.stringify(addition.values).slice(1,-1);
+    const content=stringifyPgValue(addition.values).slice(1,-1);
     updates.push({start:span.end-1,end:span.end-1,text:(Object.keys(addition.parent).length?',':'')+content});
   }
   return updates.sort((a,b)=>b.start-a.start);

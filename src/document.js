@@ -1,5 +1,11 @@
 'use strict';
 
+// Match PG export escaping without changing the decoded value or line endings.
+function stringifyPgValue(value) {
+  return JSON.stringify(value).replace(/[='<>&\u2028\u2029]/g,
+    char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+
 // Work with source spans so unrelated formatting and number literals survive edits.
 function inspect(text) {
   const data = JSON.parse(text);
@@ -54,30 +60,34 @@ function inspect(text) {
   return { data, spans };
 }
 
+function isEditablePath(path) {
+  const serviceEvent = path.at(-2) === 'serviceEvents';
+  return (['pageSetup','views'].includes(path[0]) ||
+      (path[0] === 'modalSaveBnt' && ['pageEvents','serviceEvents'].includes(path[1]))) &&
+    (path.includes('fields') || path.includes('pageEvents') || serviceEvent) &&
+    (!path.includes('serviceEvents') || serviceEvent) &&
+    !path.some(key => ['datasource','pageId','guid','id','fieldId','__proto__','prototype','constructor'].includes(key));
+}
+
 function createEdit(text, path, nextValue) {
   if (!Array.isArray(path) || path.length > 128 || path.some(p => typeof p !== 'string' && !Number.isInteger(p))) {
     throw new Error('修改路径无效。');
   }
   const { data, spans } = inspect(text);
-  const editable = (path[0] === 'pageSetup' || path[0] === 'views' ||
-      (path[0] === 'modalSaveBnt' && path[1] === 'pageEvents')) &&
-    (path.includes('fields') || path.includes('pageEvents')) &&
-    !path.some(p => ['serviceEvents', 'datasource', 'pageId', 'guid', 'id'].includes(p));
-  if (!editable) throw new Error('首版不支持修改此属性。');
+  if (!isEditablePath(path)) throw new Error('当前版本不支持修改此属性。');
   let previous = data;
   for (const part of path) {
     if (previous === null || typeof previous !== 'object' || !Object.hasOwn(previous, part)) throw new Error('属性不存在。');
     previous = previous[part];
   }
   const scalar = v => v === null || ['string', 'number', 'boolean'].includes(typeof v);
-  if (!scalar(previous) || !scalar(nextValue) || typeof previous !== typeof nextValue ||
-      (previous === null) !== (nextValue === null) || (typeof nextValue === 'number' && !Number.isFinite(nextValue))) {
-    throw new Error('属性类型必须保持不变，仅支持已有的简单属性。');
+  if (!scalar(previous) || !scalar(nextValue) || (typeof nextValue === 'number' && !Number.isFinite(nextValue))) {
+    throw new Error('仅支持简单属性值（字符串、有限数字、布尔值或 null），不支持对象或数组替换：/' + path.join('/'));
   }
-  if (path.includes('pageEvents') && typeof nextValue !== 'string') throw new Error('事件必须是脚本文本。');
+  if (path.some(key => ['pageEvents','serviceEvents'].includes(key)) && typeof nextValue !== 'string') throw new Error('事件必须是脚本文本。');
   const span = spans.get(JSON.stringify(path));
   if (!span) throw new Error('修改路径不存在。');
-  return { ...span, text: JSON.stringify(nextValue) };
+  return { ...span, text: Object.is(previous, nextValue) ? text.slice(span.start, span.end) : stringifyPgValue(nextValue) };
 }
 
-module.exports = { inspect, createEdit };
+module.exports = { inspect, createEdit, stringifyPgValue, isEditablePath };
