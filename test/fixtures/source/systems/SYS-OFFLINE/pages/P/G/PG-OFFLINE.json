@@ -1,0 +1,48 @@
+{
+  "pageId": "PG-OFFLINE",
+  "pageAliasId": "offline_example",
+  "pageType": 2,
+  "pageSetup": {
+    "pageEvents": {
+      "onOpenScript": "// 示例事件，仅作文本编辑"
+    }
+  },
+  "views": {
+    "rows": [
+      {
+        "component": {
+          "id": "inputForm",
+          "name": "示例表单",
+          "type": "input-box",
+          "guid": "component-example",
+          "params": {},
+          "datasource": {
+            "sql": "SELECT EXAMPLE_NAME FROM EXAMPLE_TABLE"
+          },
+          "fields": [
+            {
+              "id": "field-example",
+              "fieldId": "EXAMPLE_NAME",
+              "label": "示例名称",
+              "type": "text",
+              "width": 1
+            }
+          ],
+          "buttons": [
+            {
+              "id": "button-example",
+              "name": "示例按钮",
+              "pageEvents": {
+                "onClickScript": "// 示例按钮事件"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "ctrls": []
+  },
+  "unknownExtension": {
+    "keep": true
+  }
+}

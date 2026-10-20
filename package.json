@@ -1,0 +1,76 @@
+{
+  "name": "gushen-page-editor",
+  "displayName": "谷神页面离线编辑器",
+  "description": "离线编辑谷神 PG JSON 页面中的字段和前端事件，支持独立替换设计器静态资源。",
+  "version": "0.2.0",
+  "publisher": "local-gushen",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onCustomEditor:gushen.pageEditor"
+  ],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "gushen.pageEditor",
+        "displayName": "谷神页面编辑器",
+        "selector": [
+          {
+            "filenamePattern": "PG-*.json"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "configuration": {
+      "title": "谷神页面编辑器",
+      "properties": {
+        "gushen.designerAssetsPath": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "可替换资源包的绝对路径；留空使用插件内置资源。重开编辑器生效。"
+        },
+        "gushen.editorMode": {
+          "type": "string",
+          "enum": [
+            "platform",
+            "basic"
+          ],
+          "enumDescriptions": [
+            "使用下载的谷神原版设计器（默认）",
+            "使用内置字段与事件编辑界面"
+          ],
+          "default": "platform",
+          "scope": "window",
+          "description": "选择页面编辑界面，关闭并重开页面生效。"
+        },
+        "gushen.platformAssetsPath": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "原版平台资源快照的绝对目录，含 snapshot.json 和 guthon/；留空使用插件自带资源。更换后重开编辑器。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/extension.js && node --check src/document.js && node --check src/assets.js && node --check src/native-document.js && node --check src/native-provider.js && node --check src/upstream.js && node --check designer-assets/editor.js && node --check native-designer/bridge.js && python3 -c \"from pathlib import Path; [compile(p.read_text(), str(p), 'exec') for p in Path('scripts').glob('*.py')]\"",
+    "package": "python3 scripts/package_vsix.py",
+    "assets:download": "python3 scripts/download_platform_assets.py"
+  },
+  "files": [
+    "src/**",
+    "designer-assets/**",
+    "native-designer/**",
+    "platform-assets/**",
+    "README.md"
+  ]
+}

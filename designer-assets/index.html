@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{nonce}}'; style-src {{cspSource}}; img-src {{cspSource}} data:; font-src {{cspSource}}; connect-src 'none'; base-uri {{cspSource}};">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="{{baseUri}}">
+<link rel="stylesheet" href="editor.css">
+<title>谷神页面编辑器</title>
+</head>
+<body>
+<header><strong>谷神页面 · 离线编辑</strong><span id="page"></span></header>
+<p class="hint">内置编辑界面，可替换为谷神设计器资源包。修改会进入当前文档，按 Ctrl / ⌘ + S 保存后提交 SVN。</p>
+<div id="status" role="status">正在读取页面…</div>
+<main><aside><label for="filter">查找字段或事件</label><input id="filter" placeholder="名称、属性、事件…"><div id="tree"></div></aside>
+<section><h2 id="title">选择字段属性或前端事件</h2><p id="location"></p><label id="value-label" for="value">属性值</label><textarea id="value" disabled spellcheck="false"></textarea><div class="actions"><button id="apply" disabled>应用到文档</button><button id="discard" disabled>放弃输入并刷新</button></div><p class="hint">首版可修改已有字段的简单属性和已有前端事件；不会执行脚本。布局和控件增删尚未接入。</p></section></main>
+<script nonce="{{nonce}}" src="editor.js"></script>
+</body></html>
